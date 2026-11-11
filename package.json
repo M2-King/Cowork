@@ -1,0 +1,21 @@
+{
+  "name": "cowork",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cowork — shared code and notebook workspace (Phase 1 UI prototype with fixture data)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "walkthrough": "node scripts/walkthrough.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
