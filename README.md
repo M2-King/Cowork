@@ -14,31 +14,34 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-There's no build step and nothing to install. KaTeX (for formulas) and Inter (fallback font when SF Pro isn't available) load from public CDNs.
+There's no build step and nothing to install. KaTeX (for formulas) and the fonts (Unbounded, Chakra Petch, Inter) load from public CDNs.
 
 ## What's inside
 
-| Screen | What it shows |
-|---|---|
-| **Today** | Continue card with a live forward/backward-pass network, Activity-style goal rings, the course path, cards due, concept of the day, and this week's minutes |
-| **Subjects** | Six courses in prerequisite order, each with its own animated glyph |
-| **Subject** | Hero with course stats, then units and lessons with status (done, in progress, up next, locked) |
-| **Lesson** | Reading layout with math, an embedded lab, a learning-rate comparison, a quiz, a sticky table of contents and reading progress. *Gradient descent* is the fully written sample lesson. |
-| **Labs** | Six interactive instruments: Matrix Transform, Tangent and Secant, Least Squares, Optimizer Race (SGD vs Momentum vs Adam), Neural Playground (an MLP trained in the browser), and Convolution |
-| **Review** | Spaced-repetition flashcards: 3D flip, swipe to rate, keys 1–4 |
-| **Progress** | Streak and totals, activity heatmap, course completion, minutes per week, milestones |
+The UI is designed as a **AAA game front end**: studying is a campaign.
 
-Other pieces: a ⌘K / `/` command palette, an account sheet, and light, dark and automatic appearance.
+| Screen | What it is |
+|---|---|
+| **Hub** | Cinematic main menu: the active mission in giant type with *Continue mission*, your rank card (emblem, level, XP), daily ops with XP rewards, drills ready, a codex entry, chapter select and simulators |
+| **Campaign** | World route through six realms, from *Chapter I · The Lattice* (Linear Algebra) to *Chapter VI · The Deep* (Deep Learning), plus chapter-select posters with difficulty pips |
+| **Realm** | Chapter key art, stats, a *Deploy* button, and Acts of missions with XP rewards and boss missions |
+| **Mission** | Briefing, objectives that tick off as you read, an embedded simulator, a **boss encounter** (answer correctly to drain its HP), and a *Mission complete* results screen with an XP bar |
+| **Simulators** | Six live labs: Matrix Transform, Tangent and Secant, Least Squares, Optimizer Race, Neural Playground, Convolution |
+| **Drills** | Spaced-repetition flashcards styled as collectible cards with rarity, a combo counter, a score, and a grade (S/A/B/C) at the end |
+| **Profile** | Operator banner, rank and XP, realm-mastery radar, training volume, service record (heatmap) and trophies by rarity |
+
+Also included: a title card on first load, ⌘K / `/` search, **Q / E** to switch tabs like shoulder buttons, Enter to continue the mission from the hub, and synthesized interface sounds that can be toggled in the HUD.
 
 ## Design language
 
-- **Continuous corners.** Every card, panel and icon uses iOS-style squircle corners, not circular ones. Browsers that support CSS `corner-shape` draw them natively. Other browsers get an exact smooth-corner path (the Figma/iOS algorithm with 60% smoothing) applied as a `clip-path`, plus a hairline edge that follows the curve. Add `?sq=js` to the URL to force the script path for comparison.
-- **Spring physics.** Motion is driven by damped springs. They're simulated once at startup and turned into CSS `linear()` easing curves, so plain CSS transitions bounce like UIKit springs. JS-driven motion (indicators, tilt) uses the same spring solver.
-- **Liquid indicators.** The selected-tab highlight in the sidebar, tab bar, segmented controls and table of contents springs between items and stretches along its direction of travel.
-- **Living loss landscape.** The background is a slowly drifting loss surface drawn as contour lines in WebGL. A few "optimizer" particles run momentum gradient descent across it, and your pointer presses a small well into the surface.
-- **Screen transitions.** These use the View Transitions API: drilling in pushes from the right, going back pops from the left, and tab switches blur-dissolve. A tapped subject or lab card morphs into the next screen's hero. Changing the appearance reveals the new theme as a circle spreading from the control you pressed.
-- **Materials.** Glass (blur plus saturation, with a specular rim) is used for floating chrome only. Content sits on opaque surfaces. All colors are tokens in `styles/tokens.css`, with a separate dark palette.
-- `prefers-reduced-motion` is respected throughout: animations stop and the background is drawn once.
+- **A live 3-D world.** The background is a ray-marched loss landscape (WebGL), where height is the loss. Contour lines glow along equal-loss heights, fog rolls in with distance, and an objective beacon with a light shaft hovers over the deepest valley. The camera drifts and follows the pointer, and each realm tints the world in its colour. Quality adapts automatically on slower GPUs.
+- **HUD materials.** Content sits on glass panels with targeting brackets, set in display type (Unbounded) with HUD labels (Chakra Petch) and Inter for body text. Film grain and a vignette finish the image.
+- **Continuous corners.** Panels, cards and buttons use iOS-style squircle corners: native CSS `corner-shape` where supported, and an exact smooth-corner `clip-path` elsewhere (add `?sq=js` to the URL to force the fallback).
+- **Spring physics** drives motion. Springs compile to CSS `linear()` easings, and liquid indicators follow the active tab.
+- **Screen transitions** use the View Transitions API: drilling in pushes forward, going back pulls out, and a chosen chapter or simulator card morphs into the next screen.
+- **Game feedback:** XP rewards, a boss HP bar with damage numbers and a *Defeated* stamp, combo pop-ups, and level-progress results screens.
+- **Sound:** short UI sounds generated with Web Audio (no audio files). They start only after your first interaction.
+- `prefers-reduced-motion` is respected: the world renders a single still frame and animations stop.
 
 ## Structure
 
@@ -46,19 +49,20 @@ Other pieces: a ⌘K / `/` command palette, an account sheet, and light, dark an
 web/
   index.html              shell, icon sprite, script order
   styles/
-    tokens.css            color, type, radius, motion tokens (light + dark)
-    base.css              reset, continuous corners, glass, layout shell
-    components.css        buttons, cards, segmented control, sliders, palette, sheet…
+    tokens.css            colour, type, radius, motion tokens (single dark game look)
+    base.css              reset, continuous corners, HUD panels, world layers, shell
+    components.css        game buttons, HUD bar, chips, bars, palette, rewards, splash…
     screens.css           per-screen layout (container queries)
     labs.css              lab stage + control panel
     motion.css            view-transition choreography
   scripts/
     core.js               springs, squircle engine, theme, liquid indicator, helpers
-    ambient.js            WebGL loss-landscape background
+    world.js              ray-marched 3-D loss-landscape world (WebGL)
+    sfx.js                synthesized interface sounds
     glyphs.js             animated subject illustrations
     data.js               curriculum, flashcards, sample progress
-    screens.js            Today, Subjects, Subject, Lesson, Labs, Review, Progress
-    app.js                router, chrome, command palette, account sheet
+    screens.js            Hub, Campaign, Realm, Mission, Simulators, Drills, Profile
+    app.js                title card, HUD, router, search, operator sheet
     labs/*.js             the six interactive labs
 ```
 

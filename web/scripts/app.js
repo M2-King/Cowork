@@ -1,7 +1,7 @@
 /* ==========================================================================
-   Epoch — app shell
-   Router (hash-based, with View Transitions), sidebar + tab bar with liquid
-   indicators, condensing toolbar, ⌘K palette, account sheet, appearance.
+   EPOCH — app shell
+   Title card, HUD bar (tabs with Q/E switching), router with View
+   Transitions, ⌘K search, operator sheet, sound.
    ========================================================================== */
 (function () {
   'use strict';
@@ -9,54 +9,37 @@
   const { $, $$, icon, esc } = E;
 
   const NAV = [
-    { key: 'today', label: 'Today', icon: 'today' },
-    { key: 'subjects', label: 'Subjects', icon: 'subjects' },
-    { key: 'labs', label: 'Labs', icon: 'labs' },
-    { key: 'review', label: 'Review', icon: 'review', badge: D.cards.length },
-    { key: 'progress', label: 'Progress', icon: 'progress' },
-  ];
-  const THEME_OPTS = [
-    { value: 'light', icon: 'sun', hidden: 'Light', title: 'Light' },
-    { value: 'dark', icon: 'moon', hidden: 'Dark', title: 'Dark' },
-    { value: 'auto', icon: 'auto', hidden: 'Automatic', title: 'Match system' },
+    { key: 'today', label: 'Hub', icon: 'today' },
+    { key: 'subjects', label: 'Campaign', icon: 'map' },
+    { key: 'labs', label: 'Simulators', short: 'Sims', icon: 'labs' },
+    { key: 'review', label: 'Drills', icon: 'review', badge: D.cards.length },
+    { key: 'progress', label: 'Profile', icon: 'person' },
   ];
 
   /* ------------------------------------------------------------ chrome */
+  let tabLiquid, barLiquid;
   function buildChrome() {
-    const pref = E.Theme.pref();
-    $('#sidebar-nav').innerHTML = `<span class="nav-indicator sq" aria-hidden="true"></span>${NAV.map((n) => `<a class="nav-item" href="#${n.key}" data-nav="${n.key}">${icon(n.icon)}<span>${n.label}</span>${n.badge ? `<span class="badge num" aria-label="${n.badge} due">${n.badge}</span>` : ''}</a>`).join('')}`;
-    $('#sidebar-subjects').innerHTML = `<div class="eyebrow">Courses</div>${D.subjects.map((s) => {
-      const r = 7, c = 2 * Math.PI * r;
-      return `<a class="nav-sub" href="#subject-${s.id}" data-subject="${s.id}" data-sub="${s.id}">
-        <svg class="mini-ring" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="${r}" fill="none" stroke-width="2.6" style="stroke:var(--c);opacity:.22"/><circle cx="9" cy="9" r="${r}" fill="none" stroke-width="2.6" stroke-linecap="round" style="stroke:var(--c)" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - s.progress)}" transform="rotate(-90 9 9)"/></svg>
-        <span>${esc(s.title)}</span><span class="pct">${Math.round(s.progress * 100)}%</span></a>`;
-    }).join('')}`;
-    $('#sidebar-theme').innerHTML = E.segHTML('Appearance', THEME_OPTS, pref, 'full sm');
-    $('#tabbar').innerHTML = `<span class="tab-indicator" aria-hidden="true"></span>${NAV.map((n) => `<a class="tab" href="#${n.key}" data-nav="${n.key}">${icon(n.icon)}<span>${n.label}</span>${n.badge ? `<span class="badge num" aria-hidden="true">${n.badge}</span>` : ''}</a>`).join('')}`;
-    $('#streak-num').textContent = D.user.streak;
-
-    themeSeg = E.segmented($('#sidebar-theme .seg'), (v, btn) => setTheme(v, btn));
-    navLiquid = new E.Liquid($('#sidebar-nav'), $('#sidebar-nav .nav-indicator'), { axis: 'y' });
-    tabLiquid = new E.Liquid($('#tabbar'), $('#tabbar .tab-indicator'), { axis: 'x' });
-    new ResizeObserver(() => { const a = $('#tabbar [aria-current="page"]'); if (a) tabLiquid.moveTo(a, true); }).observe($('#tabbar'));
+    const u = D.user;
+    $('#hud-tabs').innerHTML = `<kbd class="only-wide" title="Previous tab">Q</kbd><span class="tab-glow" aria-hidden="true"></span>${NAV.map((n) => `<a class="hud-tab" href="#${n.key}" data-nav="${n.key}">${n.label}${n.badge ? `<span class="badge num" aria-label="${n.badge} due">${n.badge}</span>` : ''}</a>`).join('')}<kbd class="only-wide" title="Next tab">E</kbd>`;
+    $('#tabbar').innerHTML = `<span class="tab-indicator" aria-hidden="true"></span>${NAV.map((n) => `<a class="tab" href="#${n.key}" data-nav="${n.key}">${icon(n.icon)}<span>${n.short || n.label}</span>${n.badge ? `<span class="badge num" aria-hidden="true">${n.badge}</span>` : ''}</a>`).join('')}`;
+    $('#streak-num').textContent = u.streak;
+    $('#shards-num').textContent = u.xp.toLocaleString();
+    $('#hud-level').innerHTML = levelRing(u);
+    $('#hud-rank').textContent = u.rank;
+    tabLiquid = new E.Liquid($('#hud-tabs'), $('#hud-tabs .tab-glow'), { axis: 'x' });
+    barLiquid = new E.Liquid($('#tabbar'), $('#tabbar .tab-indicator'), { axis: 'x' });
+    new ResizeObserver(() => { const a = $('#tabbar [aria-current="page"]'); if (a) barLiquid.moveTo(a, true); const b = $('#hud-tabs [aria-current="page"]'); if (b) tabLiquid.moveTo(b, true); }).observe(document.body);
+    syncSound();
   }
-  let navLiquid, tabLiquid, themeSeg;
-
-  /* ------------------------------------------------------- appearance */
-  function setTheme(v, originEl) {
-    const html = document.documentElement;
-    const run = () => { E.Theme.set(v); if (themeSeg) themeSeg.set(v); if (sheetSeg) sheetSeg.set(v); };
-    if (!document.startViewTransition || E.reducedMotion() || !originEl) return run();
-    const r = originEl.getBoundingClientRect();
-    const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    const R = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    html.dataset.vtDir = 'theme';
-    const vt = document.startViewTransition(run);
-    vt.ready.then(() => {
-      html.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`] },
-        { duration: 700, easing: 'cubic-bezier(.45,0,.15,1)', pseudoElement: '::view-transition-new(root)' });
-    }).catch(() => {});
-    vt.finished.finally(() => delete html.dataset.vtDir);
+  function levelRing(u) {
+    const r = 15, c = 2 * Math.PI * r, p = u.xp / u.nextXp;
+    return `<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="${r}" fill="none" stroke="rgba(150,178,255,.18)" stroke-width="2.5"/><circle cx="17" cy="17" r="${r}" fill="none" stroke="var(--ember)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - p)}" transform="rotate(-90 17 17)" style="filter:drop-shadow(0 0 3px var(--ember))"/></svg><span>${u.level}</span>`;
+  }
+  function syncSound() {
+    const b = $('#sound-btn'); if (!b) return;
+    b.setAttribute('aria-pressed', String(E.Sfx.on));
+    b.innerHTML = icon(E.Sfx.on ? 'sound' : 'mute');
+    b.setAttribute('aria-label', E.Sfx.on ? 'Sound on' : 'Sound off');
   }
 
   /* ------------------------------------------------------------ router */
@@ -77,17 +60,7 @@
     return S.notFound();
   }
   const navOf = (k) => (k.startsWith('subject-') || k.startsWith('lesson-') ? 'subjects' : k.startsWith('lab-') ? 'labs' : k);
-  const subjectOf = (k) => {
-    if (k.startsWith('subject-')) return k.slice(8);
-    if (k.startsWith('lesson-')) { const l = D.lesson(k.slice(7)); return l && l.subject; }
-    if (k.startsWith('lab-')) { const l = D.lab(k.slice(4)); return l && l.subject; }
-    return null;
-  };
-
-  function keyFromHash() {
-    const h = decodeURIComponent((location.hash || '').replace(/^#/, ''));
-    return h || 'today';
-  }
+  const keyFromHash = () => decodeURIComponent((location.hash || '').replace(/^#/, '')) || 'today';
 
   function go(key, { initial = false } = {}) {
     if (key === current.key) return;
@@ -105,8 +78,8 @@
       updateChrome(key, scr);
     };
     const html = document.documentElement;
+    if (!initial) E.Sfx.whoosh();
     if (initial || !document.startViewTransition || E.reducedMotion()) { apply(); return; }
-    // a shared element morphs between screens when both have it (card ↔ hero)
     const shared = [vtKey(key), from && vtKey(from)].find((k) => k && view().querySelector(`[data-vt="${k}"]`) && scr.html.includes(`data-vt="${k}"`));
     if (shared) view().querySelector(`[data-vt="${shared}"]`).style.viewTransitionName = 'shared';
     html.dataset.vtDir = !from ? 'fade' : depth(key) > depth(from) ? 'forward' : depth(key) < depth(from) ? 'back' : 'fade';
@@ -114,48 +87,34 @@
       apply();
       if (shared) { const el = view().querySelector(`[data-vt="${shared}"]`); if (el) el.style.viewTransitionName = 'shared'; }
     });
-    vt.ready.catch(() => {}); // skipped when another navigation starts first
+    vt.ready.catch(() => {});
     vt.finished.finally(() => {
       delete html.dataset.vtDir;
       $$('[data-vt]', view()).forEach((el) => (el.style.viewTransitionName = ''));
     });
   }
 
-  /* --------------------------------------------------- chrome updates */
-  let titleObserver = null;
   function updateChrome(key, scr) {
-    const nav = navOf(key), sub = subjectOf(key);
+    const nav = navOf(key);
     $$('[data-nav]').forEach((a) => (a.getAttribute('data-nav') === nav ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
-    $$('[data-sub]').forEach((a) => (a.dataset.sub === sub ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
-    navLiquid.moveTo($(`#sidebar-nav [data-nav="${nav}"]`));
-    tabLiquid.moveTo($(`#tabbar [data-nav="${nav}"]`));
-    // toolbar
+    tabLiquid.moveTo($(`#hud-tabs [data-nav="${nav}"]`));
+    barLiquid.moveTo($(`#tabbar [data-nav="${nav}"]`));
     const back = $('#back-btn');
     if (scr.back) { back.hidden = false; back.href = scr.back.href; $('span', back).textContent = scr.back.label; }
     else back.hidden = true;
-    $('#toolbar-title span').textContent = scr.title || '';
-    const tb = $('#toolbar');
-    tb.classList.remove('is-condensed');
-    if (titleObserver) titleObserver.disconnect();
-    const lt = $('[data-large-title]', view());
-    if (lt) {
-      titleObserver = new IntersectionObserver(([e]) => tb.classList.toggle('is-condensed', !e.isIntersecting && e.boundingClientRect.top < 80), { rootMargin: '-60px 0px 0px 0px' });
-      titleObserver.observe(lt);
-    }
     document.title = scr.title && key !== 'today' ? `${scr.title} · Epoch` : 'Epoch';
     document.documentElement.dataset.screen = key.split('-')[0];
   }
 
   /* ------------------------------------------------------- overlays */
   let lastFocus = null;
-  function openOverlay(html, { onClose, label } = {}) {
+  function openOverlay(html, { onClose } = {}) {
     closeOverlay(true);
     lastFocus = document.activeElement;
     const o = document.createElement('div');
     o.className = 'overlay';
     o.innerHTML = `<div class="scrim" data-close></div>${html}`;
     document.body.appendChild(o);
-    document.documentElement.classList.add('has-overlay');
     o.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeOverlay(); });
     o.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { e.preventDefault(); closeOverlay(); }
@@ -163,32 +122,31 @@
         const f = $$('button, [href], input, [tabindex]:not([tabindex="-1"])', o).filter((x) => !x.disabled && x.offsetParent);
         if (!f.length) return;
         const i = f.indexOf(document.activeElement);
-        if (e.shiftKey && (i <= 0)) { e.preventDefault(); f[f.length - 1].focus(); }
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
         else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
       }
     });
-    o._onClose = onClose; void label;
+    o._onClose = onClose;
     return o;
   }
   function closeOverlay(instant = false) {
-    const o = $('.overlay:not(.is-closing)');
+    const o = $('.overlay:not(.is-closing):not(.results-overlay)');
     if (!o) return;
     if (o._onClose) o._onClose();
-    document.documentElement.classList.remove('has-overlay');
     if (instant || E.reducedMotion()) o.remove();
     else { o.classList.add('is-closing'); setTimeout(() => o.remove(), 260); }
     if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
 
-  /* ---------------------------------------------------------- palette */
+  /* ---------------------------------------------------------- search */
   function paletteItems() {
     const items = [];
     NAV.forEach((n) => items.push({ group: 'Go to', title: n.label, sub: 'Screen', href: '#' + n.key, icon: n.icon }));
-    D.subjects.forEach((s) => items.push({ group: 'Courses', title: s.title, sub: `${s.lessons.length} lessons · ${Math.round(s.progress * 100)}% complete`, href: '#subject-' + s.id, icon: s.icon, subject: s.id }));
-    D.labs.forEach((l) => items.push({ group: 'Labs', title: l.title, sub: D.subject(l.subject).title, href: '#lab-' + l.id, icon: 'labs', subject: l.subject }));
-    D.subjects.forEach((s) => s.lessons.forEach((l) => items.push({ group: 'Lessons', title: l.title, sub: `${s.title} · ${l.min} min${l.status === 'locked' ? ' · locked' : ''}`, href: '#lesson-' + l.id, icon: 'book', subject: s.id, locked: l.status === 'locked' })));
-    items.push({ group: 'Actions', title: 'Start review', sub: `${D.cards.length} cards due`, href: '#review', icon: 'review' });
-    items.push({ group: 'Actions', title: 'Switch appearance', sub: 'Toggle light and dark', action: 'theme', icon: 'auto' });
+    D.subjects.forEach((s) => items.push({ group: 'Chapters', title: s.title, sub: `Chapter ${s.numeral} · ${s.realm} · ${Math.round(s.progress * 100)}% synced`, href: '#subject-' + s.id, icon: s.icon, subject: s.id }));
+    D.labs.forEach((l) => items.push({ group: 'Simulators', title: l.title, sub: `${l.code} · ${D.subject(l.subject).title}`, href: '#lab-' + l.id, icon: 'labs', subject: l.subject }));
+    D.subjects.forEach((s) => s.lessons.forEach((l) => items.push({ group: 'Missions', title: l.title, sub: `M${String(l.n).padStart(2, '0')} · ${s.title} · ${l.min} min${l.status === 'locked' ? ' · locked' : ''}`, href: '#lesson-' + l.id, icon: l.boss ? 'trophy' : 'book', subject: s.id, locked: l.status === 'locked' })));
+    items.push({ group: 'Actions', title: 'Start drill', sub: `${D.cards.length} cards ready`, href: '#review', icon: 'bolt' });
+    items.push({ group: 'Actions', title: 'Toggle sound', sub: 'Interface sound effects', action: 'sound', icon: 'sound' });
     return items;
   }
   function score(item, q) {
@@ -210,10 +168,10 @@
     if ($('.overlay .palette')) return;
     const all = paletteItems();
     const o = openOverlay(`
-      <div class="palette sq edge glass-strong" role="dialog" aria-modal="true" aria-label="Search Epoch">
-        <div class="palette-input">${icon('search')}<input id="palette-q" type="text" placeholder="Search lessons, labs and courses" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-results" aria-autocomplete="list"><kbd>esc</kbd></div>
+      <div class="palette sq glass-strong" role="dialog" aria-modal="true" aria-label="Search Epoch">
+        <div class="palette-input">${icon('search')}<input id="palette-q" type="text" placeholder="Search missions, chapters, simulators" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-results" aria-autocomplete="list"><kbd>esc</kbd></div>
         <div class="palette-results" id="palette-results" role="listbox" aria-label="Results"></div>
-        <div class="palette-foot only-wide"><span><kbd>↑</kbd> <kbd>↓</kbd> to move</span><span><kbd>↵</kbd> to open</span><span><kbd>esc</kbd> to close</span></div>
+        <div class="palette-foot only-wide"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div>
       </div>`);
     const input = $('#palette-q', o), list = $('#palette-results', o);
     let results = [], sel = 0;
@@ -222,19 +180,17 @@
       if (!q) {
         const cont = D.lesson('backpropagation');
         results = [
-          { group: 'Suggested', title: `Continue: ${cont.title}`, sub: 'Neural Networks · 62% done', href: '#lesson-' + cont.id, icon: 'play', subject: cont.subject },
-          { group: 'Suggested', title: 'Start review', sub: `${D.cards.length} cards due`, href: '#review', icon: 'review' },
-          ...all.filter((x) => x.group === 'Labs').slice(0, 3).map((x) => ({ ...x, group: 'Suggested' })),
-          ...all.filter((x) => x.group === 'Courses'),
+          { group: 'Suggested', title: `Continue: ${cont.title}`, sub: 'Chapter V · 62% synced', href: '#lesson-' + cont.id, icon: 'play', subject: cont.subject },
+          { group: 'Suggested', title: 'Start drill', sub: `${D.cards.length} cards ready`, href: '#review', icon: 'bolt' },
+          ...all.filter((x) => x.group === 'Simulators').slice(0, 3).map((x) => ({ ...x, group: 'Suggested' })),
+          ...all.filter((x) => x.group === 'Chapters'),
         ];
-      } else {
-        results = all.map((x) => ({ x, s: score(x, q) })).filter((r) => r.s >= 0).sort((a, b) => b.s - a.s).slice(0, 14).map((r) => r.x);
-      }
+      } else results = all.map((x) => ({ x, s: score(x, q) })).filter((r) => r.s >= 0).sort((a, b) => b.s - a.s).slice(0, 14).map((r) => r.x);
       sel = 0;
       if (!results.length) { list.innerHTML = `<div class="palette-empty">No matches for “${esc(input.value)}”. Try a topic like “eigen” or “loss”.</div>`; return; }
       let lastGroup = '';
       list.innerHTML = results.map((r, i) => {
-        const g = r.group !== lastGroup ? `<div class="palette-group eyebrow">${r.group}</div>` : ''; lastGroup = r.group;
+        const g = r.group !== lastGroup ? `<div class="palette-group hud-label">${r.group}</div>` : ''; lastGroup = r.group;
         return `${g}<button type="button" class="palette-item" role="option" id="pi-${i}" data-i="${i}" aria-selected="${i === 0}" ${r.subject ? `data-subject="${r.subject}"` : ''}><span class="pi-icon">${icon(r.icon)}</span><span class="pi-main"><span class="pi-title">${highlight(r.title, q)}</span><span class="t-cap">${esc(r.sub || '')}</span></span>${r.locked ? icon('lock', 'sm') : ''}</button>`;
       }).join('');
       input.setAttribute('aria-activedescendant', 'pi-0');
@@ -245,13 +201,13 @@
       items.forEach((b, i) => b.setAttribute('aria-selected', String(i === sel)));
       items[sel].scrollIntoView({ block: 'nearest' });
       input.setAttribute('aria-activedescendant', 'pi-' + sel);
+      E.Sfx.hover();
     };
     const choose = (i) => {
       const r = results[i]; if (!r) return;
       closeOverlay(true);
-      if (r.action === 'theme') { const next = E.Theme.isDark() ? 'light' : 'dark'; setTheme(next, $('#sidebar-theme .seg-btn[aria-checked="true"]') || document.body); return; }
-      if (location.hash === r.href) return;
-      location.hash = r.href;
+      if (r.action === 'sound') { E.Sfx.set(!E.Sfx.on); syncSound(); return; }
+      if (location.hash !== r.href) location.hash = r.href;
     };
     input.addEventListener('input', render);
     input.addEventListener('keydown', (e) => {
@@ -268,27 +224,40 @@
     requestAnimationFrame(() => input.focus());
   }
 
-  /* ------------------------------------------------------ account sheet */
-  let sheetSeg = null;
-  function openAccount() {
+  /* ---------------------------------------------------- operator sheet */
+  function openOperator() {
     const u = D.user;
     const o = openOverlay(`
       <div class="sheet sq glass-strong" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
         <div class="grabber" aria-hidden="true"></div>
         <div class="sheet-head">
-          <span class="avatar sq">${icon('person')}</span>
-          <div><h2 id="sheet-title" class="t-title3">Your account</h2><div class="t-foot">Level ${u.level} · ${u.xp.toLocaleString()} XP</div></div>
-          <button type="button" class="btn-icon gray" data-close aria-label="Close">${icon('xmark')}</button>
+          ${S.emblem(u.level, 64)}
+          <div><div class="hud-label">Callsign</div><h2 id="sheet-title" class="t-title2">${esc(u.callsign)}</h2><div class="t-foot">Lv ${u.level} · ${esc(u.rank)}</div></div>
+          <button type="button" class="btn-icon" data-close aria-label="Close">${icon('xmark')}</button>
         </div>
-        <div class="xp-row"><div class="bar" data-p="${(u.xp / u.nextXp).toFixed(3)}" style="--p:${(u.xp / u.nextXp).toFixed(3)}"><i></i></div><span class="t-cap num">${u.nextXp - u.xp} XP to level ${u.level + 1}</span></div>
+        <div class="xp-row"><div class="row-l"><span class="hud-label num">${u.xp.toLocaleString()} / ${u.nextXp.toLocaleString()} XP</span><span class="hud-label">Next · ${esc(u.nextRank)}</span></div><div class="bar xp seg" style="--p:${(u.xp / u.nextXp).toFixed(3)}"><i></i></div></div>
         <div class="sheet-group">
-          <div class="eyebrow">Appearance</div>
-          ${E.segHTML('Appearance', THEME_OPTS.map((t) => ({ ...t, label: t.hidden, hidden: '' })), E.Theme.pref(), 'full')}
+          <div class="hud-label">Settings</div>
+          <label class="setting" for="set-sound"><span>${icon('sound')}Interface sound</span><span class="switch"><input type="checkbox" id="set-sound" ${E.Sfx.on ? 'checked' : ''}><span class="track" aria-hidden="true"></span></span></label>
         </div>
+        <div class="sheet-actions"><a class="btn btn-ghost" href="#progress" data-close>${icon('person')}View profile</a></div>
         <p class="t-cap sheet-note">${icon('sparkles', 'sm')} This preview uses sample progress data.</p>
-      </div>`, { onClose: () => (sheetSeg = null) });
-    sheetSeg = E.segmented($('.seg', o), (v, btn) => setTheme(v, btn));
+      </div>`);
+    $('#set-sound', o).addEventListener('change', (e) => { E.Sfx.set(e.target.checked); syncSound(); });
     requestAnimationFrame(() => { const b = $('[data-close].btn-icon', o); if (b) b.focus(); });
+  }
+
+  /* ---------------------------------------------------------- splash */
+  function splash() {
+    const el = $('#splash');
+    if (!el) return;
+    let seen = false; try { seen = sessionStorage.getItem('epoch:splash') === '1'; } catch (e) { /* storage unavailable */ }
+    if (seen || E.reducedMotion()) { el.remove(); return; }
+    try { sessionStorage.setItem('epoch:splash', '1'); } catch (e) { /* storage unavailable */ }
+    const dismiss = () => { if (el.classList.contains('is-out')) return; el.classList.add('is-out'); setTimeout(() => el.remove(), 1000); removeEventListener('keydown', dismiss); };
+    el.addEventListener('click', dismiss);
+    addEventListener('keydown', dismiss);
+    setTimeout(dismiss, 2300);
   }
 
   /* ----------------------------------------------------------- boot */
@@ -297,26 +266,37 @@
     E.Theme.init();
     E.Squircle.init();
     buildChrome();
-    E.Ambient.init();
+    E.World.init();
+    E.Sfx.wire();
+    splash();
 
     document.addEventListener('click', (e) => {
       const a = e.target.closest('[data-action]');
       if (!a) return;
       if (a.dataset.action === 'palette') openPalette();
-      if (a.dataset.action === 'account') openAccount();
+      if (a.dataset.action === 'account') openOperator();
+      if (a.dataset.action === 'sound') { E.Sfx.set(!E.Sfx.on); syncSound(); }
     });
     document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('.overlay .palette') ? closeOverlay() : openPalette(); }
-      else if (e.key === '/' && !e.target.closest('input, textarea, [contenteditable]') && !$('.overlay')) { e.preventDefault(); openPalette(); }
+      const typing = e.target.closest('input, textarea, [contenteditable]');
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('.overlay .palette') ? closeOverlay() : openPalette(); return; }
+      if (typing || $('.overlay') || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '/') { e.preventDefault(); openPalette(); }
+      // shoulder-button style tab switching
+      if (e.key === 'q' || e.key === 'Q' || e.key === 'e' || e.key === 'E') {
+        const i = NAV.findIndex((n) => n.key === navOf(current.key || 'today'));
+        const n = (i + (e.key.toLowerCase() === 'e' ? 1 : -1) + NAV.length) % NAV.length;
+        location.hash = '#' + NAV[n].key;
+      }
     });
+    const onScroll = () => document.documentElement.classList.toggle('is-scrolled', scrollY > 24);
+    addEventListener('scroll', onScroll, { passive: true }); onScroll();
     addEventListener('hashchange', () => {
       const k = keyFromHash();
-      // in-page anchors (e.g. lesson sections) are handled by the screen itself
       if (document.getElementById(k) && !/^(today|subjects|labs|review|progress|subject-|lesson-|lab-)/.test(k)) return;
       go(k);
     });
     go(keyFromHash(), { initial: true });
-    document.documentElement.classList.add('is-ready');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

@@ -138,12 +138,24 @@
     },
   ];
 
+  // Game layer: each course is a chapter of the campaign, set in its own realm
+  const GAME = {
+    'linear-algebra':    { realm: 'The Lattice', numeral: 'I', difficulty: 1 },
+    calculus:            { realm: 'Slopes of Change', numeral: 'II', difficulty: 2 },
+    'linear-regression': { realm: 'The Least Squares', numeral: 'III', difficulty: 2 },
+    'machine-learning':  { realm: 'Generalization Frontier', numeral: 'IV', difficulty: 3 },
+    'neural-networks':   { realm: 'The Neural Wilds', numeral: 'V', difficulty: 4 },
+    'deep-learning':     { realm: 'The Deep', numeral: 'VI', difficulty: 5 },
+  };
+  subjects.forEach((s) => Object.assign(s, GAME[s.id]));
+
   // Derived fields
   const lessonIndex = {};
   subjects.forEach((s) => {
     s.lessons = [];
     s.units.forEach((u, ui) => u.lessons.forEach((l) => { l.subject = s.id; l.unit = ui; l.unitTitle = u.title; s.lessons.push(l); lessonIndex[l.id] = l; }));
-    s.lessons.forEach((l, i) => (l.n = i + 1));
+    s.lessons.forEach((l, i) => { l.n = i + 1; l.xp = Math.round((l.min * 4) / 10) * 10; });
+    s.units.forEach((u) => { u.lessons[u.lessons.length - 1].boss = true; });
     const done = s.lessons.filter((l) => l.status === 'done').length;
     const cur = s.lessons.find((l) => l.status === 'current');
     s.progress = (done + (cur ? cur.pct || 0 : 0)) / s.lessons.length;
@@ -153,12 +165,12 @@
   });
 
   const labs = [
-    { id: 'matrix', title: 'Matrix Transform', subject: 'linear-algebra', blurb: 'Change the entries of a 2×2 matrix and watch the plane bend. Area scales by the determinant.' },
-    { id: 'derivative', title: 'Tangent and Secant', subject: 'calculus', blurb: 'Slide a point along a curve and shrink h until the secant line becomes the tangent.' },
-    { id: 'regression', title: 'Least Squares', subject: 'linear-regression', blurb: 'Place points, then fit a line in closed form or watch gradient descent find it.' },
-    { id: 'optimizer', title: 'Optimizer Race', subject: 'machine-learning', blurb: 'SGD, Momentum and Adam race downhill from the same start on the same loss surface.' },
-    { id: 'network', title: 'Neural Playground', subject: 'neural-networks', blurb: 'Train a tiny network in your browser and watch its decision boundary take shape.' },
-    { id: 'convolution', title: 'Convolution', subject: 'deep-learning', blurb: 'Slide a 3×3 kernel over an image and see each output pixel get computed.' },
+    { id: 'matrix', code: 'SIM-01', title: 'Matrix Transform', subject: 'linear-algebra', blurb: 'Change the entries of a 2×2 matrix and watch the plane bend. Area scales by the determinant.' },
+    { id: 'derivative', code: 'SIM-02', title: 'Tangent and Secant', subject: 'calculus', blurb: 'Slide a point along a curve and shrink h until the secant line becomes the tangent.' },
+    { id: 'regression', code: 'SIM-03', title: 'Least Squares', subject: 'linear-regression', blurb: 'Place points, then fit a line in closed form or watch gradient descent find it.' },
+    { id: 'optimizer', code: 'SIM-04', title: 'Optimizer Race', subject: 'machine-learning', blurb: 'SGD, Momentum and Adam race downhill from the same start on the same loss surface.' },
+    { id: 'network', code: 'SIM-05', title: 'Neural Playground', subject: 'neural-networks', blurb: 'Train a tiny network in your browser and watch its decision boundary take shape.' },
+    { id: 'convolution', code: 'SIM-06', title: 'Convolution', subject: 'deep-learning', blurb: 'Slide a 3×3 kernel over an image and see each output pixel get computed.' },
   ];
 
   const cards = [
@@ -203,7 +215,7 @@
     lab: (id) => labs.find((l) => l.id === id),
     cards,
     activity: activity(),
-    user: { level: 7, xp: 1240, nextXp: 1500, streak: 23, best: 41 },
+    user: { callsign: 'Operator', level: 7, rank: 'Gradient Adept', nextRank: 'Backprop Knight', xp: 1240, nextXp: 1500, streak: 23, best: 41, shards: 860, accuracy: 0.87 },
     goals: [
       { id: 'learn', label: 'Learn', unit: 'min', value: 18, goal: 30, color: 'var(--accent)' },
       { id: 'practice', label: 'Practice', unit: 'problems', value: 12, goal: 20, color: 'var(--c-reg)' },
