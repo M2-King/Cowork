@@ -1,0 +1,202 @@
+/* ==========================================================================
+   Epoch — base: reset, type, continuous corners, materials, shell layout
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-padding-top: calc(var(--toolbar-h) + 16px);
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-text);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Paint the safe-area band above the sticky toolbar */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 40;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+h1, h2, h3, h4, p, figure, blockquote, ol, ul { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; font-weight: 700; }
+p { text-wrap: pretty; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+img, svg, canvas { display: block; max-width: 100%; }
+[hidden] { display: none !important; }
+::selection { background: var(--accent-soft); }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon.sm { width: 16px; height: 16px; }
+.icon.lg { width: 24px; height: 24px; }
+.icon.fill { fill: currentColor; stroke: none; }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* ---- Type roles ------------------------------------------------------- */
+.t-hero   { font-size: var(--t-hero); line-height: 1.05; letter-spacing: -0.028em; font-weight: 700; }
+.t-large  { font-size: var(--t-large); line-height: 1.1; letter-spacing: -0.024em; font-weight: 700; }
+.t-title1 { font-size: var(--t-title-1); line-height: 1.15; letter-spacing: -0.02em; font-weight: 700; }
+.t-title2 { font-size: var(--t-title-2); line-height: 1.2; letter-spacing: -0.016em; font-weight: 650; }
+.t-title3 { font-size: var(--t-title-3); line-height: 1.25; letter-spacing: -0.012em; font-weight: 600; }
+.t-head   { font-size: var(--t-headline); line-height: 1.3; letter-spacing: -0.008em; font-weight: 600; }
+.t-sub    { font-size: var(--t-sub); line-height: 1.4; color: var(--fg-2); }
+.t-foot   { font-size: var(--t-foot); line-height: 1.4; color: var(--fg-2); }
+.t-cap    { font-size: var(--t-cap); line-height: 1.3; color: var(--fg-2); }
+.eyebrow  {
+  font-size: var(--t-cap-2); line-height: 1.2; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--fg-2);
+}
+
+/* ==========================================================================
+   Continuous corners
+   .sq  — shape. Radius comes from --r. Browsers with `corner-shape` draw the
+          superellipse natively; others get an exact iOS-style smooth-corner
+          path from scripts/core.js (clip-path), plus an SVG hairline.
+   .edge — adds a hairline that follows the shape.
+   ========================================================================== */
+.sq { border-radius: calc(var(--r, var(--r-lg)) * var(--sq-k)); }
+
+@supports (corner-shape: squircle) {
+  :root { --sq-k: 1.72; }
+  .sq { corner-shape: squircle; }
+}
+
+.lift { border-radius: calc(var(--r, var(--r-lg)) * var(--sq-k)); }
+@supports (corner-shape: squircle) { .lift { corner-shape: squircle; } }
+
+/* script path: neutralise native corner-shape so the clip-path is the only shape */
+:root.sq-js { --sq-k: 1; }
+.sq-js .sq, .sq-js .lift, .sq-js .rim::before, .sq-js .focus-in::after { corner-shape: round; }
+
+.sq.edge { box-shadow: inset 0 0 0 1px var(--edge, var(--hairline)), var(--elev, 0 0 #0000); }
+.sq-js .sq.edge { box-shadow: none; background-image: var(--sq-edge-img, none); background-repeat: no-repeat; background-size: 100% 100%; }
+
+/* Capsules (Apple uses true semicircles for pills) */
+.pill { border-radius: 999px; }
+@supports (corner-shape: round) { .pill { corner-shape: round; } }
+
+/* ---- Materials -------------------------------------------------------- */
+.glass {
+  background-color: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(28px) saturate(190%);
+}
+.glass-strong {
+  background-color: var(--glass-strong);
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+}
+/* Specular rim: light catches the top edge of a glass sheet */
+.rim { position: relative; }
+.rim::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(180deg, var(--glass-hi), var(--glass-lo) 38%, transparent 60%, var(--glass-lo));
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  padding: 1px;
+}
+@supports (corner-shape: squircle) { .rim::before { corner-shape: inherit; } }
+
+/* ==========================================================================
+   Shell
+   ========================================================================== */
+#ambient {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+}
+#ambient-trails { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+#ambient-wrap { transition: opacity .8s ease; }
+:root[data-screen="lesson"] #ambient-wrap, :root[data-screen="review"] #ambient-wrap { opacity: .45; }
+
+.app { position: relative; z-index: 1; min-height: 100vh; min-height: 100dvh; }
+
+/* Sidebar — desktop */
+.sidebar-lift {
+  position: fixed; z-index: 30;
+  top: calc(var(--float-gap) + env(safe-area-inset-top, 0px));
+  bottom: calc(var(--float-gap) + env(safe-area-inset-bottom, 0px));
+  left: calc(var(--float-gap) + env(safe-area-inset-left, 0px));
+  width: var(--sidebar-w);
+  --r: var(--r-xl);
+  box-shadow: var(--shadow-float);
+  view-transition-name: sidebar;
+}
+.sidebar {
+  --r: var(--r-xl);
+  height: 100%;
+  display: flex; flex-direction: column;
+  padding: 14px 12px 12px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.main {
+  position: relative;
+  min-width: 0;
+  margin-left: calc(var(--sidebar-w) + var(--float-gap) * 2 + env(safe-area-inset-left, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 64px;
+}
+.main > .inner { max-width: var(--content-max); margin: 0 auto; }
+
+.view { min-height: 60vh; }
+
+.tabbar-lift { display: none; }
+
+@media (max-width: 1023px) {
+  .sidebar-lift { display: none; }
+  .main {
+    margin-left: 0;
+    padding-block: 0 calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+  .tabbar-lift {
+    display: block;
+    position: fixed; z-index: 30;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    width: min(440px, calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    border-radius: 999px;
+    box-shadow: var(--shadow-float);
+    view-transition-name: tabbar;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) { :root { --sidebar-w: 232px; } }
+
+/* ---- Reduced motion -------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}

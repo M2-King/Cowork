@@ -1,0 +1,45 @@
+/* ==========================================================================
+   Epoch — screen transitions (View Transitions API)
+   Tab switches blur-dissolve in place; drilling in pushes from the right;
+   going back pops from the left; a tapped card morphs into the next hero.
+   Appearance changes reveal as a circle from the control you pressed.
+   ========================================================================== */
+
+.toolbar { view-transition-name: toolbar; }
+
+::view-transition-old(root) { animation: vt-fade-out 220ms ease both; }
+::view-transition-new(root) { animation: vt-fade-in 560ms var(--spring-smooth) both; }
+
+:root[data-vt-dir="forward"]::view-transition-old(root) { animation: vt-push-out 260ms cubic-bezier(.4, 0, 1, 1) both; }
+:root[data-vt-dir="forward"]::view-transition-new(root) { animation: vt-push-in 620ms var(--spring-smooth) both; }
+:root[data-vt-dir="back"]::view-transition-old(root) { animation: vt-pop-out 260ms cubic-bezier(.4, 0, 1, 1) both; }
+:root[data-vt-dir="back"]::view-transition-new(root) { animation: vt-pop-in 620ms var(--spring-smooth) both; }
+
+@keyframes vt-fade-out { to { opacity: 0; filter: blur(6px); transform: scale(.992); } }
+@keyframes vt-fade-in  { from { opacity: 0; filter: blur(10px); transform: scale(1.012); } }
+@keyframes vt-push-out { to { opacity: 0; transform: translateX(-28px); filter: blur(4px); } }
+@keyframes vt-push-in  { from { opacity: 0; transform: translateX(44px); filter: blur(6px); } }
+@keyframes vt-pop-out  { to { opacity: 0; transform: translateX(28px); filter: blur(4px); } }
+@keyframes vt-pop-in   { from { opacity: 0; transform: translateX(-44px); filter: blur(6px); } }
+
+/* Persistent chrome: no cross-fade, show the live state */
+::view-transition-old(sidebar), ::view-transition-old(tabbar), ::view-transition-old(toolbar) { display: none; }
+::view-transition-new(sidebar), ::view-transition-new(tabbar), ::view-transition-new(toolbar) { animation: none; }
+
+/* Shared element morph (subject card ↔ subject hero, lab card ↔ lab stage) */
+::view-transition-group(shared) { animation-duration: var(--d-smooth); animation-timing-function: var(--spring-smooth); z-index: 5; }
+::view-transition-old(shared), ::view-transition-new(shared) { height: 100%; width: 100%; object-fit: cover; overflow: clip; }
+::view-transition-old(shared) { animation: vt-fade-out 240ms ease both; }
+::view-transition-new(shared) { animation: vt-fade-in-plain 360ms ease both; }
+@keyframes vt-fade-in-plain { from { opacity: 0; } }
+
+/* Appearance: circle reveal driven from JS */
+:root[data-vt-dir="theme"]::view-transition-old(root),
+:root[data-vt-dir="theme"]::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+:root[data-vt-dir="theme"] .sidebar-lift,
+:root[data-vt-dir="theme"] .tabbar-lift,
+:root[data-vt-dir="theme"] .toolbar { view-transition-name: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

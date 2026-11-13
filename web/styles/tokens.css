@@ -1,0 +1,214 @@
+/* ==========================================================================
+   Epoch — design tokens
+   Layout: a floating glass sidebar (desktop) or floating glass tab bar (phone)
+   over a living loss-landscape; content is a fluid grid of squircle cards.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Neutrals (cool, very slightly blue-biased) ---- */
+  --bg:            #F2F3F7;
+  --surface:       #FFFFFF;
+  --surface-2:     #F6F7FA;
+  --surface-3:     #ECEEF3;
+  --raised:        #FFFFFF;
+  --fill:          rgba(116, 118, 134, 0.14);
+  --fill-2:        rgba(116, 118, 134, 0.08);
+  --fg:            #1D1D1F;
+  --fg-2:          #6B6C74;
+  --fg-3:          #9C9DA6;
+  --hairline:      rgba(20, 22, 40, 0.08);
+  --hairline-2:    rgba(20, 22, 40, 0.14);
+
+  /* ---- Accent & semantic ---- */
+  --accent:        #0071E3;
+  --accent-hi:     #2B8CF0;
+  --accent-fg:     #FFFFFF;
+  --accent-soft:   rgba(0, 113, 227, 0.12);
+  --good:          #1F8A3A;
+  --good-soft:     rgba(31, 138, 58, 0.12);
+  --warn:          #B35A00;
+  --warn-soft:     rgba(179, 90, 0, 0.12);
+  --bad:           #D70F2F;
+  --bad-soft:      rgba(215, 15, 47, 0.10);
+
+  /* ---- Subject identity (always paired with a name + glyph) ---- */
+  --c-la:          #5856D6;   /* Linear Algebra   */
+  --c-calc:        #F08400;   /* Calculus         */
+  --c-reg:         #2FA84F;   /* Linear Regression*/
+  --c-ml:          #1E9FC0;   /* Machine Learning */
+  --c-nn:          #AF52DE;   /* Neural Networks  */
+  --c-dl:          #FF2D55;   /* Deep Learning    */
+
+  /* ---- Materials ---- */
+  --glass:         rgba(255, 255, 255, 0.62);
+  --glass-strong:  rgba(255, 255, 255, 0.84);
+  --glass-hi:      rgba(255, 255, 255, 0.95);   /* specular rim */
+  --glass-lo:      rgba(255, 255, 255, 0.30);
+  --scrim:         rgba(14, 16, 28, 0.28);
+  --hero:          #111116;
+  --hero-2:        #1C1C24;
+  --hero-fg:       #F5F5F7;
+  --hero-fg-2:     rgba(245, 245, 247, 0.62);
+  --contour:       rgba(40, 52, 110, 0.075);
+  --contour-major: rgba(40, 52, 110, 0.14);
+
+  --shadow-float:  0 1px 1px rgba(10, 12, 30, 0.04), 0 10px 30px rgba(10, 12, 30, 0.10), 0 30px 60px rgba(10, 12, 30, 0.06);
+  --shadow-card:   0 1px 2px rgba(10, 12, 30, 0.04), 0 6px 20px rgba(10, 12, 30, 0.05);
+  --shadow-pop:    0 2px 6px rgba(10, 12, 30, 0.06), 0 24px 70px rgba(10, 12, 30, 0.22);
+
+  /* ---- Type ---- */
+  --font-text:     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display:  -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono:     ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --font-math:     "STIX Two Math", "Cambria Math", "Latin Modern Math", math, serif;
+
+  --t-hero:        clamp(34px, 3.2vw + 14px, 52px);
+  --t-large:       clamp(30px, 2vw + 16px, 40px);
+  --t-title-1:     28px;
+  --t-title-2:     22px;
+  --t-title-3:     19px;
+  --t-headline:    16px;
+  --t-body:        16px;
+  --t-callout:     15px;
+  --t-sub:         14px;
+  --t-foot:        13px;
+  --t-cap:         12px;
+  --t-cap-2:       11px;
+
+  /* ---- Continuous-corner radii (concentric: inner = outer − padding) ---- */
+  --r-xs:  8px;
+  --r-sm:  12px;
+  --r-md:  16px;
+  --r-lg:  22px;
+  --r-xl:  28px;
+  --r-2xl: 36px;
+
+  /* Native corner-shape draws a slightly tighter curve than iOS's continuous
+     corner at the same radius; this factor matches the 45° point. */
+  --sq-k: 1;
+
+  /* ---- Space ---- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px; --s-9: 56px;
+
+  /* ---- Motion (springs are replaced at runtime by exact linear() curves) ---- */
+  --spring-snappy:  cubic-bezier(.25, 1.2, .4, 1);
+  --spring-bouncy:  cubic-bezier(.3, 1.45, .45, 1);
+  --spring-smooth:  cubic-bezier(.22, 1, .36, 1);
+  --spring-gentle:  cubic-bezier(.22, 1, .36, 1);
+  --d-snappy: 420ms;
+  --d-bouncy: 620ms;
+  --d-smooth: 560ms;
+  --d-gentle: 900ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+
+  /* ---- Layout ---- */
+  --sidebar-w: 256px;
+  --float-gap: 12px;
+  --content-max: 1180px;
+  --toolbar-h: 56px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg:            #000000;
+    --surface:       #141416;
+    --surface-2:     #1C1C1F;
+    --surface-3:     #26262B;
+    --raised:        #3A3A40;
+    --fill:          rgba(130, 132, 150, 0.24);
+    --fill-2:        rgba(130, 132, 150, 0.14);
+    --fg:            #F5F5F7;
+    --fg-2:          #A1A1AA;
+    --fg-3:          #6C6C75;
+    --hairline:      rgba(255, 255, 255, 0.08);
+    --hairline-2:    rgba(255, 255, 255, 0.14);
+    --accent:        #2E95FF;
+    --accent-hi:     #5AACFF;
+    --accent-fg:     #FFFFFF;
+    --accent-soft:   rgba(46, 149, 255, 0.18);
+    --good:          #32D45E;
+    --good-soft:     rgba(50, 212, 94, 0.16);
+    --warn:          #FFA826;
+    --warn-soft:     rgba(255, 168, 38, 0.16);
+    --bad:           #FF4A5E;
+    --bad-soft:      rgba(255, 74, 94, 0.16);
+    --c-la:          #7D7AFF;
+    --c-calc:        #FF9F0A;
+    --c-reg:         #30D158;
+    --c-ml:          #40C8E0;
+    --c-nn:          #BF5AF2;
+    --c-dl:          #FF375F;
+    --glass:         rgba(30, 30, 34, 0.56);
+    --glass-strong:  rgba(30, 30, 34, 0.82);
+    --glass-hi:      rgba(255, 255, 255, 0.16);
+    --glass-lo:      rgba(255, 255, 255, 0.03);
+    --scrim:         rgba(0, 0, 0, 0.5);
+    --hero:          #121218;
+    --hero-2:        #1D1D27;
+    --hero-fg:       #F5F5F7;
+    --hero-fg-2:     rgba(245, 245, 247, 0.6);
+    --contour:       rgba(150, 170, 255, 0.075);
+    --contour-major: rgba(150, 170, 255, 0.14);
+    --shadow-float:  0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 36px rgba(0, 0, 0, 0.45);
+    --shadow-card:   0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-pop:    0 2px 6px rgba(0, 0, 0, 0.4), 0 30px 80px rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:            #000000;
+  --surface:       #141416;
+  --surface-2:     #1C1C1F;
+  --surface-3:     #26262B;
+  --raised:        #3A3A40;
+  --fill:          rgba(130, 132, 150, 0.24);
+  --fill-2:        rgba(130, 132, 150, 0.14);
+  --fg:            #F5F5F7;
+  --fg-2:          #A1A1AA;
+  --fg-3:          #6C6C75;
+  --hairline:      rgba(255, 255, 255, 0.08);
+  --hairline-2:    rgba(255, 255, 255, 0.14);
+  --accent:        #2E95FF;
+  --accent-hi:     #5AACFF;
+  --accent-fg:     #FFFFFF;
+  --accent-soft:   rgba(46, 149, 255, 0.18);
+  --good:          #32D45E;
+  --good-soft:     rgba(50, 212, 94, 0.16);
+  --warn:          #FFA826;
+  --warn-soft:     rgba(255, 168, 38, 0.16);
+  --bad:           #FF4A5E;
+  --bad-soft:      rgba(255, 74, 94, 0.16);
+  --c-la:          #7D7AFF;
+  --c-calc:        #FF9F0A;
+  --c-reg:         #30D158;
+  --c-ml:          #40C8E0;
+  --c-nn:          #BF5AF2;
+  --c-dl:          #FF375F;
+  --glass:         rgba(30, 30, 34, 0.56);
+  --glass-strong:  rgba(30, 30, 34, 0.82);
+  --glass-hi:      rgba(255, 255, 255, 0.16);
+  --glass-lo:      rgba(255, 255, 255, 0.03);
+  --scrim:         rgba(0, 0, 0, 0.5);
+  --hero:          #121218;
+  --hero-2:        #1D1D27;
+  --hero-fg:       #F5F5F7;
+  --hero-fg-2:     rgba(245, 245, 247, 0.6);
+  --contour:       rgba(150, 170, 255, 0.075);
+  --contour-major: rgba(150, 170, 255, 0.14);
+  --shadow-float:  0 1px 1px rgba(0, 0, 0, 0.3), 0 12px 36px rgba(0, 0, 0, 0.45);
+  --shadow-card:   0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop:    0 2px 6px rgba(0, 0, 0, 0.4), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+
+/* Subject scoping: any element with data-subject gets --c pointing at its hue */
+[data-subject="linear-algebra"]    { --c: var(--c-la); }
+[data-subject="calculus"]          { --c: var(--c-calc); }
+[data-subject="linear-regression"] { --c: var(--c-reg); }
+[data-subject="machine-learning"]  { --c: var(--c-ml); }
+[data-subject="neural-networks"]   { --c: var(--c-nn); }
+[data-subject="deep-learning"]     { --c: var(--c-dl); }
